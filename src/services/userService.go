@@ -219,3 +219,179 @@ func (us *userService) UnblockUser(ctx context.Context, req *userspb.UserAccessU
 		Access:    models.AccessStrToAccess(existingUser.Access),
 	}, nil
 }
+
+func (us *userService) UpdateUser(ctx context.Context, req *userspb.UserRequest) (*userspb.UserResponse, error) {
+	if req.Email == "" {
+		return nil, status.Error(codes.InvalidArgument, "Invalid Input: email, first_name, last_name, ph_number, dob, access and gender are required")
+	}
+
+	stmt, names := qb.Select(us.table.Name()).
+		Columns("email").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	executor := us.session.Query(stmt, names).BindMap(qb.M{"email": req.Email})
+
+	var existingUser models.User
+
+	if err := executor.GetRelease(&existingUser); err != nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("User not found: %v", err))
+	}
+
+	if existingUser.Access == "BLOCKED" {
+		return nil, status.Error(codes.PermissionDenied, fmt.Sprintln("User Access Blocked"))
+	}
+
+	updatedUser := models.User{
+		Email: req.GetEmail(),
+	}
+
+	updateBuilder := qb.Update(us.table.Name())
+
+	if req.FirstName != "" {
+		updatedUser.FirstName = req.GetFirstName()
+		updateBuilder = updateBuilder.Set("first_name")
+	}
+
+	if req.LastName != "" {
+		updatedUser.LastName = req.GetLastName()
+		updateBuilder = updateBuilder.Set("last_name")
+	}
+
+	if req.PhNumber != "" {
+		updatedUser.PhNumber = req.GetPhNumber()
+		updateBuilder = updateBuilder.Set("ph_number")
+	}
+
+	if req.Gender.String() != "" {
+		updatedUser.Gender = req.GetGender().String()
+		updateBuilder = updateBuilder.Set("gender")
+	}
+
+	if req.Dob != "" {
+		parsedDate, err := time.Parse("2006-01-02", req.Dob)
+		if err == nil {
+			updatedUser.Dob = parsedDate
+			updateBuilder = updateBuilder.Set("dob")
+		}
+	}
+
+	if req.Access.String() != "" {
+		updatedUser.Access = req.GetAccess().String()
+		updateBuilder = updateBuilder.Set("access")
+	}
+
+	updateQuery, names := updateBuilder.
+		Where(qb.Eq("email")).
+		ToCql()
+
+	executor = us.session.Query(updateQuery, names).BindStruct(updatedUser)
+
+	if err := executor.ExecRelease(); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("Error updating user: %v", err))
+	}
+
+	log.Println("User updated successfully")
+	return &userspb.UserResponse{
+		Email:     updatedUser.Email,
+		FirstName: updatedUser.FirstName,
+		LastName:  updatedUser.LastName,
+		PhNumber:  updatedUser.PhNumber,
+		Gender:    models.GenderStrToGender(updatedUser.Gender),
+		Dob:       updatedUser.Dob.Format(time.RFC3339),
+		Access:    models.AccessStrToAccess(existingUser.Access),
+	}, nil
+}
+
+func (us *userService) UpdatePhoneOrEmail(ctx context.Context, req *userspb.UpdatePhoneOrEmailRequest) (*userspb.UserResponse, error) {
+	if req.GetCurrEmail() == "" {
+		return nil, status.Error(codes.InvalidArgument, "Current email is required")
+	}
+
+	if req.GetNewEmail() == "" && req.GetNewPhNumber() == "" {
+		return nil, status.Error(codes.InvalidArgument, "Either new email or new phone number must be provided")
+	}
+
+	stmt, names := qb.Select(us.table.Name()).
+		Columns("email", "first_name", "last_name", "ph_number", "gender", "dob", "access").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	executor := us.session.Query(stmt, names).BindMap(qb.M{"email": req.GetCurrEmail()})
+	var user models.User
+	if err := executor.GetRelease(&user); err != nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("User not found: %v", err))
+	}
+
+	if user.Access == "BLOCKED" {
+		return nil, status.Error(codes.PermissionDenied, fmt.Sprintln("User Access Blocked"))
+	}
+
+	if req.GetNewPhNumber() != "" && req.GetNewEmail() == "" {
+		stmt, names := qb.Update(us.table.Name()).
+			Set("ph_number").
+			Where(qb.Eq("email")).
+			ToCql()
+
+		executor := us.session.Query(stmt, names).BindMap(qb.M{
+			"ph_number": req.GetNewPhNumber(),
+			"email":     req.GetCurrEmail(),
+		})
+
+		if err := executor.ExecRelease(); err != nil {
+			return nil, status.Error(codes.Internal, fmt.Sprintf("Error updating phone number: %v", err))
+		}
+
+		user.PhNumber = req.GetNewPhNumber()
+	} else if req.GetNewEmail() != "" {
+		stmt, names := qb.Select(us.table.Name()).
+			Columns("email").
+			Where(qb.Eq("email")).
+			ToCql()
+
+		executor := us.session.Query(stmt, names).BindMap(qb.M{"email": req.GetNewEmail()})
+		var existingUser models.User
+		if err := executor.GetRelease(&existingUser); err == nil {
+			return nil, status.Error(codes.AlreadyExists, "User with email already exists")
+		}
+
+		newUser := user
+		newUser.Email = req.GetNewEmail()
+
+		if req.GetNewPhNumber() != "" {
+			newUser.PhNumber = req.GetNewPhNumber()
+		}
+
+		stmt, names = qb.Insert(us.table.Name()).
+			Columns("email", "first_name", "last_name", "ph_number", "gender", "dob", "access").
+			ToCql()
+
+		executor = us.session.Query(stmt, names).BindStruct(newUser)
+		if err := executor.ExecRelease(); err != nil {
+			return nil, status.Error(codes.Internal, fmt.Sprintf("Error creating new user record: %v", err))
+		}
+
+		stmt, names = qb.Delete(us.table.Name()).
+			Where(qb.Eq("email")).
+			ToCql()
+
+		executor = us.session.Query(stmt, names).BindMap(qb.M{"email": req.GetCurrEmail()})
+		if err := executor.ExecRelease(); err != nil {
+			log.Printf("Warning: Failed to delete old user record: %v", err)
+		}
+
+		user = newUser
+	}
+
+	log.Println("User phone/email updated successfully")
+
+	return &userspb.UserResponse{
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		PhNumber:  user.PhNumber,
+		Gender:    models.GenderStrToGender(user.Gender),
+		Dob:       user.Dob.Format(time.RFC3339),
+		Access:    models.AccessStrToAccess(user.Access),
+	}, nil
+}
