@@ -13,6 +13,7 @@ import (
 
 	userspb "2k4sm/grpc-crud/proto/users"
 	"2k4sm/grpc-crud/src/db"
+	"2k4sm/grpc-crud/src/services"
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
+	userService := services.NewUserService(session)
+	userspb.RegisterUsersServer(grpcServer, userService)
 
 	log.Println("Serving gRPC on localhost:8080")
 	go func() {

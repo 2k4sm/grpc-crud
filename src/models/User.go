@@ -3,8 +3,33 @@ package models
 import (
 	"time"
 
+	userspb "2k4sm/grpc-crud/proto/users"
+
 	"github.com/scylladb/gocqlx/table"
 )
+
+func AccessStrToAccess(access string) userspb.Access {
+	res := userspb.Access_UNBLOCKED
+
+	switch access {
+	case "BLOCKED":
+		res = userspb.Access_BLOCKED
+	case "UNBLOCKED":
+		res = userspb.Access_UNBLOCKED
+	}
+	return res
+}
+
+func GenderStrToGender(gender string) userspb.Gender {
+	res := userspb.Gender_MALE
+	switch gender {
+	case "MALE":
+		res = userspb.Gender_MALE
+	case "FEMALE":
+		res = userspb.Gender_FEMALE
+	}
+	return res
+}
 
 type User struct {
 	Email     string    `db:"email"`
