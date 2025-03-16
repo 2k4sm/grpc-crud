@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/joho/godotenv"
@@ -49,6 +51,23 @@ func main() {
 	}
 
 	mux := runtime.NewServeMux()
+	mux.HandlePath("GET", "/", func(w http.ResponseWriter, r *http.Request, _ map[string]string) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		response := struct {
+			Time    string `json:"time"`
+			Message string `json:"message"`
+		}{
+			Time:    time.Now().Format(time.RFC3339),
+			Message: "healthy",
+		}
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		}
+	})
+
 	err = userspb.RegisterUsersHandler(context.Background(), mux, conn)
 	if err != nil {
 		log.Fatalln("Failed to register gateway:", err)
