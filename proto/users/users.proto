@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+option go_package = "2k4sm/grpc-crud";
+
+package users;
+
+import "google/api/annotations.proto";
+
+service Users {
+ rpc CreateUser (UserRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     post: "/users"
+     body: "*"
+   };
+ }
+
+ rpc UpdateUser (UserRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     put: "/users/{email}"
+     body: "*"
+   };
+ }
+
+ rpc BlockUser (UserAccessUpdateRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     post: "/users/{email}/block"
+   };
+ }
+
+ rpc UnblockUser (UserAccessUpdateRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     post: "/users/{email}/unblock"
+   };
+ }
+
+ rpc UpdatePhoneOrEmail (UpdatePhoneOrEmailRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     patch: "/users/{curr_email}"
+     body: "*"
+   };
+ }
+
+ rpc GetUser (GetUserRequest) returns (UserResponse) {
+   option (google.api.http) = {
+     get: "/users"
+   };
+ }
+}
+
+enum Gender {
+ MALE = 0;
+ FEMALE = 1;
+}
+
+enum Access {
+ BLOCKED = 0;
+ UNBLOCKED = 1;
+}
+
+message UserRequest {
+ string first_name = 1;
+ string last_name = 2;
+ Gender gender = 3;
+ string dob = 4;
+ string ph_number = 5;
+ string email = 6;
+ Access access = 7;
+}
+
+message UpdatePhoneOrEmailRequest {
+ string curr_email = 3;
+ optional string new_email = 4;
+ optional string new_ph_number = 2;
+}
+
+message GetUserRequest {
+ optional string email = 1;
+ optional string ph_number = 2;
+}
+
+message UserAccessUpdateRequest {
+ string email = 1;
+}
+
+message UserResponse {
+ string first_name = 1;
+ string last_name = 2;
+ Gender gender = 3;
+ string dob = 4;
+ string ph_number = 5;
+ string email = 6;
+ Access access = 7;
+}

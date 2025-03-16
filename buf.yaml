@@ -1,0 +1,4 @@
+version: v1
+name: buf.build/2k4sm/grpc-crud
+deps:
+  - buf.build/googleapis/googleapis
