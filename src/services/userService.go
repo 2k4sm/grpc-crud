@@ -114,6 +114,10 @@ func (us *userService) GetUser(ctx context.Context, req *userspb.GetUserRequest)
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("User Not Found: %v", err))
 	}
 
+	if user.Access == "BLOCKED" {
+		return nil, status.Error(codes.PermissionDenied, fmt.Sprintln("User Access Blocked"))
+	}
+
 	log.Println("User Found Successfully")
 	return &userspb.UserResponse{
 		Email:     user.Email,
@@ -123,5 +127,95 @@ func (us *userService) GetUser(ctx context.Context, req *userspb.GetUserRequest)
 		Gender:    models.GenderStrToGender(user.Gender),
 		Dob:       user.Dob.Format(time.RFC3339),
 		Access:    models.AccessStrToAccess(user.Access),
+	}, nil
+}
+
+func (us *userService) BlockUser(ctx context.Context, req *userspb.UserAccessUpdateRequest) (*userspb.UserResponse, error) {
+	if req.Email == "" {
+		return nil, status.Error(codes.InvalidArgument, "Invalid Input: email required")
+	}
+
+	stmt, names := qb.Select(us.table.Name()).
+		Columns("email", "first_name", "last_name", "ph_number", "gender", "dob", "access").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	var existingUser models.User
+
+	executor := us.session.Query(stmt, names).BindMap(qb.M{"email": req.Email})
+
+	if err := executor.GetRelease(&existingUser); err != nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("User not found: %v", err))
+	}
+
+	stmt, names = qb.Update(us.table.Name()).
+		Set("access").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	executor = us.session.Query(stmt, names).BindMap(qb.M{
+		"access": "BLOCKED",
+		"email":  req.Email,
+	})
+
+	existingUser.Access = "BLOCKED"
+
+	if err := executor.ExecRelease(); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("Error blocking user: %v", err))
+	}
+
+	return &userspb.UserResponse{
+		Email:     existingUser.Email,
+		FirstName: existingUser.FirstName,
+		LastName:  existingUser.LastName,
+		PhNumber:  existingUser.PhNumber,
+		Gender:    models.GenderStrToGender(existingUser.Gender),
+		Dob:       existingUser.Dob.Format(time.RFC3339),
+		Access:    models.AccessStrToAccess(existingUser.Access),
+	}, nil
+}
+
+func (us *userService) UnblockUser(ctx context.Context, req *userspb.UserAccessUpdateRequest) (*userspb.UserResponse, error) {
+	if req.Email == "" {
+		return nil, status.Error(codes.InvalidArgument, "Invalid Input: email required")
+	}
+
+	stmt, names := qb.Select(us.table.Name()).
+		Columns("email", "first_name", "last_name", "ph_number", "gender", "dob", "access").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	var existingUser models.User
+
+	executor := us.session.Query(stmt, names).BindMap(qb.M{"email": req.Email})
+
+	if err := executor.GetRelease(&existingUser); err != nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("User not found: %v", err))
+	}
+
+	stmt, names = qb.Update(us.table.Name()).
+		Set("access").
+		Where(qb.Eq("email")).
+		ToCql()
+
+	executor = us.session.Query(stmt, names).BindMap(qb.M{
+		"access": "UNBLOCKED",
+		"email":  req.Email,
+	})
+
+	existingUser.Access = "UNBLOCKED"
+
+	if err := executor.ExecRelease(); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("Error unblocking user: %v", err))
+	}
+
+	return &userspb.UserResponse{
+		Email:     existingUser.Email,
+		FirstName: existingUser.FirstName,
+		LastName:  existingUser.LastName,
+		PhNumber:  existingUser.PhNumber,
+		Gender:    models.GenderStrToGender(existingUser.Gender),
+		Dob:       existingUser.Dob.Format(time.RFC3339),
+		Access:    models.AccessStrToAccess(existingUser.Access),
 	}, nil
 }
