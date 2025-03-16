@@ -1,0 +1,20 @@
+version: "3"
+services:
+  scylla:
+    image: scylladb/scylla
+    container_name: scylla-node
+    ports:
+      - "9042:9042"
+    environment:
+      - SCYLLA_DEVELOPER_MODE=1
+    command: --overprovisioned 1 --smp 1
+    volumes:
+      - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  scylla-data:
