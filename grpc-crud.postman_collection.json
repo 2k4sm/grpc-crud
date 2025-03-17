@@ -1,0 +1,199 @@
+{
+	"info": {
+		"_postman_id": "724ee479-2bcf-49d1-b6e3-1de19c406f5e",
+		"name": "grpc-crud",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41814541"
+	},
+	"item": [
+		{
+			"name": "GetUser",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users?ph_number=1234567890",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users"
+					],
+					"query": [
+						{
+							"key": "email",
+							"value": "john@example.com",
+							"disabled": true
+						},
+						{
+							"key": "ph_number",
+							"value": "1234567890"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CreateUser",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n        \"first_name\": \"John\",\n        \"last_name\": \"Doe\",\n        \"gender\": \"MALE\",\n        \"dob\": \"1990-01-01\",\n        \"ph_number\": \"1234567890\",\n        \"email\": \"john@example.com\",\n        \"access\": \"UNBLOCKED\"\n      }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UpdateUser",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n        \"first_name\": \"Prem\",\n        \"last_name\": \"B Shah\"\n      }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users/prem@gmail.com",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users",
+						"prem@gmail.com"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BlockUser",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users/john%40example.com/block",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users",
+						"john%40example.com",
+						"block"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UnblockUser",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users/john%40example.com/unblock",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users",
+						"john%40example.com",
+						"unblock"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UpdatePhoneOrEmail",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"new_email\": \"sm2k4@gmail.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://grpc-crud.2k4sm.tech/users/shrinibas@convergent-ai",
+					"protocol": "https",
+					"host": [
+						"grpc-crud",
+						"2k4sm",
+						"tech"
+					],
+					"path": [
+						"users",
+						"shrinibas@convergent-ai"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
