@@ -121,6 +121,9 @@ This is configured for automatic deployment to EC2 using GitHub Actions. When ch
 
 ### Deployed URL: https://grpc-crud.2k4sm.tech
 
+### Postman Collection
+[grpc-crud.postman_collection.json](https://github.com/2k4sm/grpc-crud/blob/main/grpc-crud.postman_collection.json)
+
 ## HTTP Endpoints
 - GET /users?email={email}&ph_number={ph_number}: Get a user by email or phone number
 
